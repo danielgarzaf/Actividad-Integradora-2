@@ -1,25 +1,66 @@
+import os
+import time
+import urllib.request
+import numpy as np
+import pandas as pd
+from cv2 import cv2
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-import os
-import numpy as np
-import urllib
-import cv2
 
-# DRIVER_PATH = './chromedriver'
-# driver = webdriver.Chrome(executable_path=DRIVER_PATH)
-
-PATH = "C:\Program Files (x86)\chromedriver.exe"
+# PATH = "C:\Program Files (x86)\chromedriver.exe"  # For Windows
+PATH = "/usr/bin/chromedriver"                    # For Linux System
 driver = webdriver.Chrome(PATH)
 
-# Función para descargar una imagen desde su URL
-def downloadImg(url):
-    response = urllib.request.urlopen(url)
-    img = np.asarray(bytearray(response.read()), dtype="uint8")
-    img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-    return img
+iIndex = 0
+
+def downloadImg(imgURL):
+    """
+    Función para descargar una imagen dado un URL como parametro
+    """
+    global iIndex
+    # Actualizar estado para el usuario
+    if(iIndex%10 == 0):
+        print("Se han revisado {} urls.".format(iIndex))
+    iIndex += 1
+
+    try: # Intentara hacer el request para descargar la imagen
+        httpResponse = urllib.request.urlopen(imgURL)
+        imgTemp = np.asarray(bytearray(httpResponse.read()), dtype="uint8")
+        imgTemp = cv2.imdecode(imgTemp, cv2.IMREAD_COLOR)
+        return imgTemp
+    
+    # En caso de que el URL ya no exista o algo más, se regresa vació
+    except Exception:
+        return float('NaN')
+    
+
+def makeDirectories(keyWord):
+    """
+    Función para crear los directorios donde guardar los datasets
+    """
+    # Obtiene el directorio padre
+    parentDir = os.path.abspath('.')
+
+    # Crea los directorios de Train
+    trainDir = os.path.join(parentDir, 'train')
+    if (not os.path.exists(trainDir)):
+        os.mkdir(trainDir)
+    trainDir = os.path.join(trainDir, keyWord)
+    if (not os.path.exists(trainDir)):
+        os.mkdir(trainDir)
+        
+    # Crea los directorios de Test
+    testDir = os.path.join(parentDir, 'test')
+    if (not os.path.exists(testDir)):
+        os.mkdir(testDir)
+    testDir = os.path.join(testDir, keyWord)
+    if (not os.path.exists(testDir)):
+        os.mkdir(testDir)
+    
+    return (trainDir, testDir)
 
 
-
+# Databases 
 image_net = "http://image-net.org"
 shutterstock = "https://www.shutterstock.com"
 
@@ -31,33 +72,63 @@ driver.get(image_net)
 search = driver.find_element_by_id("searchbox") # Si se está usando image-net
 
 # Solicita el input del usuario, lo escribe y hace enter
-search.send_keys(input("Buscar: "))
+keyWord = input("Keyword a buscar: ")
+search.send_keys(keyWord)
 search.send_keys(Keys.RETURN)
 
 # Selecciona el primer resultado de la búsqueda y da click
 driver.find_element_by_xpath("//span[@class='result_synset']").click()
 
+# Espera 10 segundos para que cargue toda la pagina
+time.sleep(10)
 
-# Obtiene la lista de urls de las imágenes
+# Busca y abre la pestaña de Downloads
+driver.find_element_by_link_text('Downloads').click()
 
+# Busca y abre la pestaña de Downloads
+driver.find_element_by_link_text('URLs').click()
 
+# Buscar la tag llamada Pre que contiene el string de los urls
+imagesURLs = driver.find_element_by_tag_name('pre').text
+
+# Pasa los URLS de un string grade a una lista de strings
+imagesURLs = imagesURLs.split('\n')
 
 # Cierra la ventana del browser
-# driver.quit()
+driver.quit()
 
+# From Python list to Pandas Series 
+imagesURLs = pd.Series(imagesURLs)
 
-# Lista de URLs
-urls = [
-    "https://pyimagesearch.com/wp-content/uploads/2015/01/google_logo.png",
-    "https://pyimagesearch.com/wp-content/uploads/2014/12/adrian_face_detection_sidebar.png",
-]
+print("\nIniciando a descargar de {} URLs.".format(len(imagesURLs)))
 
+# Obtner las imagenes o valores nulos de aquellas 
+# imagenes que no estan disponibles
+imgList = imagesURLs[:50].map(lambda url: downloadImg(url))
 
-index = 0
-# Recorre la lista de URLs y descarga cada imagen
-for url in urls:
-    img = downloadImg(url)
-    name = 'image'+str(index)+'.jpg'
-    cv2.imwrite(name,img)
-    cv2.destroyAllWindows()
-    index = index + 1
+# Borrar los valores nulos
+imgList = imgList[~imgList.isnull()]
+
+print("De {} imagenes realmente se pudieron descargar {}.".format(len(imagesURLs), len(imgList)))
+
+# Calcular la cantidad de imagenes correspondientes al 80%
+porcentajeImg = int(len(imgList)*0.8)
+
+# Dividir el dataset
+Train = imgList[:porcentajeImg]
+Test = imgList[porcentajeImg:]
+
+# Obtener las rutas a los directorios
+trainDir, testDir = makeDirectories(keyWord)
+
+# Guardar las imagenes
+iIndex = 0
+for imgTemp in Train:
+    cv2.imwrite(os.path.join(trainDir, str(iIndex) + '.jpg'), imgTemp)
+    iIndex += 1
+    
+for imgTemp in Test:
+    cv2.imwrite(os.path.join(testDir, str(iIndex) + '.jpg'), imgTemp)
+    iIndex += 1
+    
+print('\nLos datasets fueron guardados\n\tTrain: {}\n\tTest: {}'.format(len(Train), len(Test)))
