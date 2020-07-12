@@ -7,8 +7,8 @@ from cv2 import cv2
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
-# PATH = "C:\Program Files (x86)\chromedriver.exe"  # For Windows
-PATH = "/usr/bin/chromedriver"                    # For Linux System
+# PATH a Chromedrive
+PATH = "C:\Program Files (x86)\chromedriver.exe"
 driver = webdriver.Chrome(PATH)
 
 iIndex = 0
