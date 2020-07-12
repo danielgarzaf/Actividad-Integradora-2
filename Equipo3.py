@@ -104,7 +104,7 @@ print("\nIniciando a descargar de {} URLs.".format(len(imagesURLs)))
 
 # Obtner las imagenes o valores nulos de aquellas 
 # imagenes que no estan disponibles
-imgList = imagesURLs[:50].map(lambda url: downloadImg(url))
+imgList = imagesURLs.map(lambda url: downloadImg(url))
 
 # Borrar los valores nulos
 imgList = imgList[~imgList.isnull()]
