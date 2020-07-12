@@ -34,10 +34,6 @@ search = driver.find_element_by_id("searchbox") # Si se está usando image-net
 search.send_keys(input("Buscar: "))
 search.send_keys(Keys.RETURN)
 
-# Solicita el input del usuario, lo escribe y hace enter
-search.send_keys(input("Buscar: "))
-search.send_keys(Keys.RETURN)
-
 # Selecciona el primer resultado de la búsqueda y da click
 driver.find_element_by_xpath("//span[@class='result_synset']").click()
 
