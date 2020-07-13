@@ -18,7 +18,7 @@ python3 pip install selenium
 
 ```
 Tambien es necesario instalar el webdriver de Google Chrome.
-*Nota = El web driver depende del browser que utilizaras para el proyecto.
+*Nota* = El web driver depende del browser que utilizaras para el proyecto.
 
 Además no olvidar de importar los siguientes modulos: 
 
